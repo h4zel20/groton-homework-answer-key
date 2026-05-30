@@ -1,1 +1,877 @@
-file:///C:/Users/vanha/OneDrive/Desktop/Groton%20Diagnostic%20System/Groton%20DNA%20System/10_Curriculum_Templates/Level_5.1_Homework_Automation/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groton Premier Academy — Level 5.1 Homework Generator</title>
+<style>
+  :root {
+    --navy: #002060;
+    --navy-deep: #000066;
+    --rule: #cdd2e0;          /* light vertical separators */
+    --dash: #aeb4c6;          /* dashed row dividers (like the DOCX) */
+    --cream: #fbf3d0;         /* 1,000 Book Project row */
+    --ink: #141414;
+    --muted: #5b6473;
+    --bg: #e9edf3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+
+  /* ---------- App controls (screen only) ---------- */
+  .app { max-width: 920px; margin: 0 auto; padding: 22px 16px 56px; }
+  .controls { background: #fff; border: 1px solid #cfd6e2; border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,32,96,.08); }
+  .controls h1 { font-size: 15px; margin: 0 0 3px; color: var(--navy); }
+  .controls .sub { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+  .control-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 11px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  select { appearance: none; padding: 8px 30px 8px 10px; font-size: 13.5px; min-width: 150px; border: 1px solid #cfd6e2; border-radius: 6px; color: var(--ink); cursor: pointer;
+    background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%235b6473'/></svg>") no-repeat right 10px center; }
+  button { font-family: inherit; font-size: 13px; padding: 8px 15px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: #00184a; }
+  .btn-secondary { background: #fff; color: var(--navy); border-color: #cfd6e2; }
+  .btn-secondary:hover { border-color: var(--navy); }
+  .btn-secondary[disabled] { opacity: .5; cursor: not-allowed; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; }
+  .toggle input { width: 15px; height: 15px; cursor: pointer; }
+  .control-row.secondary { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e3e7ef; align-items: center; }
+  .status { font-size: 12px; color: #2f7a45; opacity: 0; transition: opacity .2s; }
+  .status.show { opacity: 1; }
+  .status.err { color: #b0341d; }
+
+  /* ---------- The homework sheet (print/export target) ---------- */
+  /* Fixed Word-page-like width so it reads as a one-page document. */
+  .page { width: 760px; margin: 0 auto; background: #fff; padding: 16px 20px 20px; box-shadow: 0 1px 4px rgba(0,32,96,.1); }
+
+  /* Header: logo box | rule | centered title | rule | spacer */
+  .sheet-head { display: grid; grid-template-columns: 150px 1px 1fr 1px 150px; align-items: center; height: 50px; margin-bottom: 8px; }
+  .logo-box { border: 1px solid var(--navy); padding: 3px 8px; display: inline-flex; align-items: center; justify-self: start; }
+  .logo-box img { height: 28px; width: auto; display: block; }
+  .logo-box .logo-fallback { font-weight: 700; color: var(--navy); font-size: 13px; }
+  .vrule { background: var(--navy); width: 1px; height: 40px; align-self: center; }
+  .sheet-title { text-align: center; font-family: "Century Gothic", "Segoe UI", sans-serif; font-weight: 700; font-size: 28px; color: #0a0a0a; letter-spacing: .5px; }
+
+  /* Main homework table */
+  table.hw { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1.5px solid var(--navy); font-size: 10.5px; line-height: 1.22; }
+  table.hw td { padding: 1px 5px; vertical-align: top; }
+  col.c-bar { width: 28px; } col.c-cover { width: 58px; } col.c-num { width: 24px; } col.c-chk { width: 30px; }
+
+  /* day label vertical bar */
+  td.daybar { background: var(--navy); color: #fff; text-align: center; vertical-align: middle; font-weight: 700; font-size: 14px; letter-spacing: 1px; padding: 0; }
+  td.daybar span { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-block; }
+
+  /* white book-cover column (the original's "blank white area") */
+  td.cover-cell { background: #fff; text-align: center; vertical-align: middle; border-right: 1px solid var(--rule); }
+  td.cover-cell img.cover { width: 46px; height: auto; max-height: 60px; display: inline-block; }
+
+  /* navy due-date band */
+  td.due { background: var(--navy); color: #fff; padding: 3px 8px; }
+  td.due .due-inner { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  td.due .d-left { font-weight: 700; font-size: 11.5px; }
+  td.due .d-right { font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  td.chk-due { background: var(--navy); text-align: center; vertical-align: middle; border-left: 1px solid #2b3a66; padding: 0; }
+  td.chk-due .vbox { display: inline-flex; background: #fff; border: 1px solid #fff; padding: 1px; line-height: 0; }
+  td.chk-due .vbox img { height: 12px; width: auto; }
+
+  /* subject heading rows */
+  td.subject { padding: 2px 6px; vertical-align: middle; }
+  td.subject .book { font-weight: 700; font-size: 11.5px; }
+  td.chk-navy { background: var(--navy); border-left: 1px solid #2b3a66; }
+
+  /* task rows */
+  td.num { text-align: center; font-weight: 700; color: var(--navy); border-bottom: 1px dashed var(--dash); }
+  td.txt { border-bottom: 1px dashed var(--dash); }
+  td.txt .tag { font-weight: 700; }
+  td.box-cell { text-align: center; vertical-align: middle; border-left: 1px solid var(--rule); border-bottom: 1px dashed var(--dash); }
+  td.box-cell .box { display: inline-block; width: 11px; height: 11px; border: 1px solid var(--navy); }
+
+  /* 1,000 Book Project row */
+  td.project { background: var(--cream); padding: 2px 8px; font-size: 10.5px; font-weight: 600; color: #5b4a16; border-top: 1px solid var(--navy); }
+  td.project .star { color: #b8860b; font-size: 12px; }
+
+  /* Abbreviation Code */
+  table.abbr { width: 100%; border-collapse: collapse; margin-top: 8px; border: 1px solid var(--navy-deep); }
+  table.abbr td { border: 1px solid var(--navy-deep); text-align: center; padding: 3px 8px; }
+  table.abbr .a-title { background: var(--navy-deep); color: #fff; font-weight: 700; font-size: 11.5px; letter-spacing: .5px; }
+  table.abbr .a-codes { background: #fff; font-size: 11px; }
+  table.abbr .a-codes b { color: var(--navy-deep); }
+
+  /* inline flag marker on the sheet (admin mode, screen only) */
+  .flag-mark { color: #b0341d; font-weight: 700; cursor: help; }
+
+  /* Teacher/Admin Homework Logic Review panel (screen only) */
+  .logic-review { width: 760px; margin: 16px auto 0; background: #fff; border: 1px solid #e2b676; border-radius: 8px; padding: 14px 16px; }
+  .logic-review h3 { margin: 0 0 4px; font-size: 13.5px; color: #8a5a16; }
+  .logic-review .lr-sub { margin: 0 0 10px; font-size: 11.5px; color: #6b6b6b; }
+  .logic-review .lr-day { font-weight: 700; color: var(--navy); margin: 12px 0 4px; font-size: 12.5px; }
+  .logic-review table { width: 100%; border-collapse: collapse; }
+  .logic-review th, .logic-review td { border: 1px solid #ead9b8; padding: 4px 6px; text-align: left; vertical-align: top; font-size: 11px; }
+  .logic-review th { background: #fbf3d0; color: #5b4a16; }
+  .logic-review .cls { font-weight: 700; }
+  .logic-review .cls.ok { color: #1e7d34; }
+  .logic-review .cls.warn { color: #b0341d; }
+  .logic-review .dim { color: #9aa0ad; }
+  .logic-review .flags { font-family: Consolas, monospace; font-size: 10.5px; color: #b0341d; }
+  .logic-review .note { font-size: 10.5px; color: #555; margin-top: 2px; }
+  .logic-review .conf-high { color: #1e7d34; } .logic-review .conf-medium { color: #9a7d1a; } .logic-review .conf-low { color: #b0341d; font-weight: 700; }
+  .logic-review .day-audit { margin: 4px 0 8px; padding: 8px 10px; background: #fdecea; border: 1px solid #e3a89f; border-radius: 6px; }
+  .logic-review .day-audit .da-head { font-weight: 700; color: #8a2a16; font-size: 11.5px; margin-bottom: 5px; }
+  .logic-review .audit-flag { margin-bottom: 6px; }
+  .logic-review .audit-flag:last-child { margin-bottom: 0; }
+  .logic-review .audit-flag .flags { font-family: Consolas, monospace; font-weight: 700; color: #b0341d; font-size: 11px; }
+  .logic-review .lr-general { margin: 4px 0 0; padding-left: 18px; }
+  .logic-review .lr-general li { font-size: 11px; color: #555; margin-bottom: 3px; }
+  .logic-review code { font-family: Consolas, monospace; font-size: 10.5px; color: #8a5a16; }
+
+  .empty-state { width: 760px; margin: 0 auto; text-align: center; color: var(--muted); padding: 40px 20px; font-size: 14px; background: #fff; border-radius: 6px; }
+
+  /* ---------- Print / PDF ----------
+     The screen styles are intentionally compact. For print we scale the
+     intrinsic sizes UP (font, rows, columns, title, covers) so the sheet
+     fills the page naturally — like the original DOCX — instead of sitting
+     tiny in the top corner. No transform/zoom scaling (those cause clipping);
+     everything stays within one Letter page. */
+  @media print {
+    @page { size: letter portrait; margin: 0.38in; }
+    html, body { background: #fff; }
+    .app { max-width: none; padding: 0; margin: 0; }
+    .controls, .no-print { display: none !important; }
+
+    /* fill the full printable width; type sized to fit the completed
+       (3-subjects-per-day) sheet on one Letter page */
+    .page { width: 100%; margin: 0; padding: 0; box-shadow: none; }
+
+    /* header */
+    .sheet-head { height: 54px; margin-bottom: 8px; grid-template-columns: 180px 1px 1fr 1px 180px; }
+    .sheet-head .logo-box { padding: 4px 10px; }
+    .sheet-head .logo-box img { height: 36px; }
+    .sheet-head .vrule { height: 46px; }
+    .sheet-title { font-size: 33px; }
+
+    /* main table — fills width; compact rows so the full sheet fits one page */
+    table.hw { font-size: 12.5px; line-height: 1.24; border-width: 2px; }
+    table.hw td { padding: 4px 8px; }
+    col.c-bar { width: 38px; } col.c-cover { width: 72px; } col.c-num { width: 32px; } col.c-chk { width: 40px; }
+    td.daybar { font-size: 18px; }
+    td.cover-cell img.cover { width: 54px; max-height: 72px; }
+    td.due { padding: 4px 10px; }
+    td.due .d-left { font-size: 14px; } td.due .d-right { font-size: 12px; }
+    td.chk-due .vbox img { height: 14px; }
+    td.subject { padding: 3px 8px; }
+    td.subject .book { font-size: 14px; }
+    td.num { font-size: 13px; }
+    td.box-cell .box { width: 14px; height: 14px; }
+    td.project { padding: 4px 10px; font-size: 12.5px; }
+    td.project .star { font-size: 15px; }
+    table.abbr { margin-top: 8px; }
+    table.abbr td { padding: 4px 8px; }
+    table.abbr .a-title { font-size: 14px; }
+    table.abbr .a-codes { font-size: 13px; }
+
+    /* keep fills/colors when "Background graphics" is enabled */
+    td.daybar, td.due, td.chk-due, td.chk-navy, td.cover-cell, td.project,
+    table.abbr .a-title, table.hw, .sheet-head .vrule {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= CONTROL PANEL (screen only) ================= -->
+  <div class="controls no-print">
+    <h1>Groton Premier Academy — Level 5.1 Homework Generator</h1>
+    <p class="sub">Version 1 (Local Prototype) · Week of June 1–5 · Recreates the original Groton DOCX homework sheet</p>
+    <div class="control-row">
+      <div class="field">
+        <label for="trackSelect">Track</label>
+        <select id="trackSelect">
+          <option value="5.1 MF">5.1 MF</option>
+          <option value="5.1 TTH">5.1 TTH</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="generateBtn">Generate Homework Sheet</button>
+    </div>
+    <div class="control-row secondary">
+      <button class="btn-secondary" id="copyBtn">Copy Sheet</button>
+      <button class="btn-secondary" id="printBtn">Print</button>
+      <button class="btn-secondary" id="docxBtn">Download DOCX</button>
+      <label class="toggle"><input type="checkbox" id="adminToggle"> Teacher / Admin mode (show risk flags)</label>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <!-- ================= OUTPUT ================= -->
+  <div id="sheet"><div class="empty-state">Select a track and click <strong>Generate Homework Sheet</strong>.</div></div>
+
+</div>
+
+<script src="assets/covers-base64.js"></script>
+<script src="vendor/docx.umd.js"></script>
+<script>
+/* =========================================================
+   ASSETS  (base64-embedded so file:// works for preview + DOCX)
+   ========================================================= */
+var ASSET_BUNDLE = window.GROTON_ASSETS || {};
+var ASSETS_DIR = "assets/", LOGO_FILE = "groton-logo.png", CHECK_FILE = "check.png";
+function assetDataUri(fn) { var a = ASSET_BUNDLE[fn]; return a ? a.dataUri : (ASSETS_DIR + fn); }
+function assetBytes(fn) { var a = ASSET_BUNDLE[fn]; if (!a) return null; var b = atob(a.b64), n = b.length, u = new Uint8Array(n); for (var i = 0; i < n; i++) u[i] = b.charCodeAt(i); return u; }
+
+/* =========================================================
+   HOMEWORK DATA  (Week 1 only — June 1–5). CONTENT UNCHANGED.
+   ========================================================= */
+var WEEK_LABEL = "June 1–5";
+var BOOK_PROJECT = "Read library books and do online book quizzes";
+
+/* Subject heading colors echoing the original sheet. */
+var COLORS = { wordly: "2E8A99", grammar: "2E74B5", writing: "2E9E3F", toefl: "7030A0", novel: "002060" };
+
+/* ---------------------------------------------------------
+   Assignment metadata model.
+   Each homework item is an object, not a plain string. The
+   EXACT approved wording lives in `student_visible_text` (the
+   sheet content is never altered); the surrounding fields are
+   the logic/planning layer used for Review/Preview crosscheck
+   and Teacher/Admin risk flags.
+
+   action:  review | preview | review_preview | complete |
+            study_quiz | rewrite | read | needs_confirmation
+   evidence sources used for June 1–5:
+     - "approved June 1-5 content"
+     - "previous homework (May 25-29)"   <- the prior cycle
+   confidence: high | medium | low
+   --------------------------------------------------------- */
+function A(student_visible_text, meta) {
+  meta = meta || {};
+  meta.student_visible_text = student_visible_text;
+  if (!meta.assignment_type) meta.assignment_type = "other";
+  if (!meta.action) meta.action = "complete";
+  if (!meta.confidence) meta.confidence = "high";
+  if (!meta.risk_flags) meta.risk_flags = [];
+  if (!("review_lesson" in meta)) meta.review_lesson = null;
+  if (!("preview_lesson" in meta)) meta.preview_lesson = null;
+  return meta;
+}
+
+var DAY1_SUBJECTS = [
+  { book: "Wordly Wise 3000 Book 5", color: COLORS.wordly, cover: "wordly-wise.jpg", items: [
+    A("SB: Review Lesson 9 (1) Introduction and Word List p.104-109.", {
+      assignment_type: "student_book", action: "review", lesson_number: 9,
+      lesson_title: "Introduction and Word List", pages: "104-109", review_lesson: 9,
+      source: "approved June 1-5 content", confidence: "medium",
+      admin_note: "Previous cycle (May 25-29) ended at Lesson 8. Lesson 9 is the new lesson; “Review” is treated as post-class review of the L9 introduction. No syllabus on file to confirm whether L9 was introduced in class on June 1st." }),
+    A("SB: Complete p.110-114.", { assignment_type: "student_book", action: "complete", pages: "110-114", confidence: "high" }),
+    A("Quiz: Study for Lesson 8 Context Quiz (SB p.77-80).", {
+      assignment_type: "quiz", action: "study_quiz", quiz_target: "Lesson 8 Context Quiz", pages: "77-80",
+      source: "previous homework (May 25-29)", confidence: "high",
+      admin_note: "Consistent: May studied the Lesson 8 Spelling & Definition Quiz; June studies the Lesson 8 Context Quiz." })
+  ] },
+  { book: "Grammar Workshop Blue", color: COLORS.grammar, cover: "grammar-workshop.jpg", items: [
+    A("SB: Preview Lesson 18 “Simple Tense: Past” p.84.", {
+      assignment_type: "student_book", action: "preview", lesson_number: 18,
+      lesson_title: "Simple Tense: Past", pages: "84", preview_lesson: 18, review_lesson: null,
+      source: "User-confirmed Grammar preview convention + June syllabus", confidence: "high",
+      risk_flags: ["GRAMMAR_L17_BODY_SKIPPED_NEEDS_CONFIRMATION"],
+      admin_note: "User confirmed Grammar SB homework is preview reading before class. Students preview only the first page of the lesson." }),
+    A("WB: Complete p.54-57.", { assignment_type: "workbook", action: "complete", pages: "54-57", confidence: "high" })
+  ] },
+  { book: "Great Writing 3 ‘From Great Paragraphs to Great Essays’", color: COLORS.writing, cover: "great-writing.jpg", items: [
+    A("WS: Continue your 5 Paragraph Essay draft. Complete it if you did not finish in class.", {
+      assignment_type: "worksheet", action: "rewrite",
+      source: "approved June 1-5 content", confidence: "medium",
+      risk_flags: ["GW3_UNIT4_SPEECH_PRESENTATION_BYPASSED_BY_JUNE_SYLLABUS", "PAGE_31_SOURCE_LAYOUT_NEEDS_CHECK", "GW3_TEST_PREP_PROMPT_PAGE_NEEDS_CONFIRMATION"],
+      admin_note: "May 25-29 included the Unit 4 Essay + Speech Day; the June syllabus bypasses the speech/presentation. Source p.31 layout (brainstorming) needs a check. Great Writing draft instruction was clarified after manual Word review. Source page for the [Test Prep] writing prompt still needs confirmation if not already verified." })
+  ] }
+];
+
+var TOEFL_SUBJECT = { book: "TOEFL High Score iBT TOEFL Reading for Jr Intermediate 2nd Edition", color: COLORS.toefl, cover: "toefl-reading.png", items: [
+  A("SB: Review Chapter 5 Anthropology, Guessing Unknown Words, Exercises 7-8 p.110-111.", {
+    assignment_type: "student_book", action: "review", lesson_title: "Chapter 5 Anthropology – Guessing Unknown Words, Exercises 7-8",
+    pages: "110-111", source: "previous homework (May 25-29)", confidence: "medium",
+    admin_note: "Chapter 5 continues from May (May covered p.108-109 / Quiz B). Exercises 7-8 read as class work to review." }),
+  A("SB: Complete p.112-115.", {
+    assignment_type: "student_book", action: "complete", pages: "112-115", confidence: "medium",
+    risk_flags: ["TOEFL_CHAPTER_5_TERMINAL_PAGES_NEED_CHECK"],
+    admin_note: "p.112-115 may be the terminal pages of Chapter 5 – confirm the chapter end before finalizing." }),
+  A("Quiz: Study for Chapter 5 Quiz C.", { assignment_type: "quiz", action: "study_quiz", quiz_target: "Chapter 5 Quiz C", confidence: "high" })
+] };
+
+/* Novel differs per track (track-specific pacing) — never cross-used. */
+var NOVEL_READ = A("Novel: Read Unit 6 Chapters 33-39 twice and make yourself familiar with the story.", {
+  assignment_type: "novel", action: "read", source: "approved June 1-5 content", confidence: "high" });
+
+/* Grammar block for the second class day (MF Friday / TTH Thursday). Added per the
+   June syllabus crosscheck (database/crosschecks/grammar_june_1_5_crosscheck.md), which
+   confirmed Lesson 19 is scheduled on both June 5 (MF) and June 4 (TTH). Identical for
+   both tracks. The Review/Preview verb follows the existing Monday/Tuesday style and is
+   flagged for confirmation (REVIEW_PREVIEW_VERB_NEEDS_CONFIRMATION). */
+var GRAMMAR_L19_BLOCK = { book: "Grammar Workshop Blue", color: COLORS.grammar, cover: "grammar-workshop.jpg", items: [
+  A("SB: Preview Lesson 19 “Simple Tense: Future” p.88.", {
+    assignment_type: "student_book", action: "preview", lesson_number: 19,
+    lesson_title: "Simple Tense: Future", pages: "88", preview_lesson: 19, review_lesson: null,
+    source: "User-confirmed Grammar preview convention + June syllabus crosscheck", confidence: "high",
+    risk_flags: ["REVIEW_PREVIEW_VERB_NEEDS_CONFIRMATION"],
+    admin_note: "User confirmed Grammar SB homework is preview reading before class. Students preview only the first page of the lesson." }),
+  A("WB: Complete p.58-60.", {
+    assignment_type: "workbook", action: "complete", pages: "58-60", confidence: "high",
+    source: "June syllabus crosscheck: database/crosschecks/grammar_june_1_5_crosscheck.md" })
+] };
+
+var homeworkData = {
+  "5.1 MF": { title: "5.1 HW (MF)", days: [
+    { label: "MON", dueDate: "Monday, June 1st", subjects: DAY1_SUBJECTS, bookProject: BOOK_PROJECT },
+    { label: "FRI", dueDate: "Friday, June 5th", subjects: [ GRAMMAR_L19_BLOCK, TOEFL_SUBJECT,
+      { book: "Novel “James & The Giant Peach”", color: COLORS.novel, cover: "james-giant-peach.jpg", items: [
+        NOVEL_READ,
+        A("WB: Complete p.40-46 (p.82-88).", {
+          assignment_type: "workbook", action: "complete", pages: "40-46 (82-88)", confidence: "medium",
+          risk_flags: ["COMPREHENSION_TERMINAL_PAGES_NEED_CHECK"],
+          admin_note: "Unit 6 comprehension/vocabulary pages; terminal pages of the unit need checking." }),
+        A("Quiz: Study for Unit 5 Comprehension Quiz, WB p.39 / p.81.", {
+          assignment_type: "quiz", action: "study_quiz", quiz_target: "Unit 5 Comprehension Quiz", pages: "39 / 81", confidence: "medium",
+          admin_note: "MF track studies the Unit 5 Comprehension Quiz while reading Unit 6 (one-unit lag). TTH studies a different quiz — do not cross tracks." })
+      ] } ],
+      bookProject: BOOK_PROJECT } ] },
+  "5.1 TTH": { title: "5.1 HW (TTH)", days: [
+    { label: "TUE", dueDate: "Tuesday, June 2nd", subjects: DAY1_SUBJECTS, bookProject: BOOK_PROJECT },
+    { label: "THU", dueDate: "Thursday, June 4th", subjects: [ GRAMMAR_L19_BLOCK, TOEFL_SUBJECT,
+      { book: "Novel “James & The Giant Peach”", color: COLORS.novel, cover: "james-giant-peach.jpg", items: [
+        NOVEL_READ,
+        A("WB: Complete p.46 (p.88).", {
+          assignment_type: "workbook", action: "complete", pages: "46 (88)", confidence: "medium",
+          risk_flags: ["COMPREHENSION_TERMINAL_PAGES_NEED_CHECK"],
+          admin_note: "Unit 6 terminal workbook page; confirm it is the final sub-section page." }),
+        A("Quiz: Study for Unit 6 Vocabulary Quiz, WB p.41-43 / p.83-85.", {
+          assignment_type: "quiz", action: "study_quiz", quiz_target: "Unit 6 Vocabulary Quiz", pages: "41-43 / 83-85", confidence: "medium",
+          admin_note: "TTH track studies the Unit 6 Vocabulary Quiz (differs from MF's Unit 5 Comprehension Quiz) — track-specific pacing." })
+      ] } ],
+      bookProject: BOOK_PROJECT } ] }
+};
+
+/* General project flags not tied to a June 1-5 assignment (shown in admin review footer). */
+var generalFlags = [ { flag: "MATILDA_UNIT_3_PRESENT_CONFIRMED", note: "Matilda Unit 3 confirmed present in the program; not assigned in the June 1-5 week." } ];
+
+/* =========================================================
+   DAILY SUBJECT COMPLETENESS AUDIT
+   ---------------------------------------------------------
+   Each homework day should normally include >= 3 academic
+   subject blocks, and Grammar Workshop Blue should not be
+   silently dropped from a day. This audit NEVER invents
+   content — it only raises Teacher/Admin warnings.
+
+   Two modes:
+   - "approved_sample" (current Week 1): warn-only. The student
+     sheet and approved text are left exactly as-is; missing
+     subjects surface only in Teacher/Admin mode.
+   - "future_generation": stricter. Missing subjects / low day
+     count BLOCK final generation (Print / DOCX) until a
+     teacher confirms — either add the subject or record a
+     verified skip. The generator still never invents content.
+
+   A day may declare `verifiedSkips: ["Grammar Workshop Blue"]`
+   once a teacher confirms a subject is intentionally omitted;
+   that clears the corresponding warning.
+   ========================================================= */
+var GENERATION_MODE = "approved_sample";          // or "future_generation"
+var MIN_DAILY_SUBJECTS = 3;
+var EXPECTED_SUBJECTS = ["vocabulary", "grammar", "writing", "toefl", "novel"];
+var SUBJECT_LABELS = { vocabulary: "Vocabulary / Wordly Wise", grammar: "Grammar Workshop Blue", writing: "Great Writing 3", toefl: "TOEFL Reading", novel: "Novel / Literature" };
+
+function subjectKey(book) {
+  var b = String(book).toLowerCase();
+  if (/wordly wise|vocabular/.test(b)) return "vocabulary";
+  if (/grammar/.test(b)) return "grammar";
+  if (/great writing|writing workshop/.test(b)) return "writing";
+  if (/toefl/.test(b)) return "toefl";
+  if (/novel|james|matilda|peach|literature/.test(b)) return "novel";
+  return "other";
+}
+
+/* CLARIFICATION (Level 5.1 policy): Grammar Workshop Blue is expected on EVERY
+   homework day. Missing Grammar must NOT be treated as a once-per-week "verified
+   skip" unless the syllabus explicitly confirms it. For the current June 1-5 data,
+   FRI (MF) and THU (TTH) have no Grammar and stay flagged
+   (DAILY_SUBJECT_COUNT_LOW + GRAMMAR_MISSING_NEEDS_CONFIRMATION +
+   DAY_STRUCTURE_INCOMPLETE_NEEDS_REVIEW). Do NOT add verifiedSkips:["Grammar..."]
+   for these days, and do NOT invent Grammar content.
+
+   FUTURE STEP — when Grammar pacing evidence is provided, the system is already
+   ready: just push a confirmed Grammar block onto that day's `subjects` array using
+   the A() metadata factory, e.g.
+
+     fridayMF.subjects.push({
+       book: "Grammar Workshop Blue", color: COLORS.grammar, cover: "grammar-workshop.jpg",
+       items: [ A("SB: Review Lesson __ “[title]” p.__-__.", {
+                  assignment_type:"student_book", action:"review", lesson_number:__,
+                  lesson_title:"[title]", pages:"__-__", review_lesson:__,
+                  source:"syllabus (confirmed)", confidence:"high" }),
+                A("WB: Complete p.__-__.", { assignment_type:"workbook", action:"complete", pages:"__-__" }) ]
+     });
+
+   Because the audit reads `day.subjects` live, adding that block makes the day >= 3
+   subjects with Grammar present, and all three warnings clear automatically — no
+   other code changes, and no verifiedSkips needed. See README "Daily Subject
+   Completeness Audit". */
+
+/* Audit one day for subject completeness. Returns { day, dueDate, blocks,
+   present, flags:[{flag,reason}], blocking }. Pure / read-only. */
+function auditDailySubjectCompleteness(track, dayRef) {
+  var data = homeworkData[track];
+  var day = (typeof dayRef === "number") ? data.days[dayRef] : dayRef;
+  var present = {}; day.subjects.forEach(function (s) { present[subjectKey(s.book)] = true; });
+  var blocks = day.subjects.length;
+  var verified = (day.verifiedSkips || []).map(subjectKey);
+  var future = GENERATION_MODE === "future_generation";
+  var names = day.subjects.map(function (s) { return s.book; }).join(", ");
+  var flags = [];
+
+  if (blocks < MIN_DAILY_SUBJECTS)
+    flags.push({ flag: "DAILY_SUBJECT_COUNT_LOW", reason: day.label + " (" + day.dueDate + ") has only " + blocks + " academic subject block" + (blocks === 1 ? "" : "s") + " — " + names + ". Expected at least " + MIN_DAILY_SUBJECTS + "." });
+
+  if (!present.grammar) {
+    if (verified.indexOf("grammar") >= 0) {
+      flags.push({ flag: "VERIFIED_SUBJECT_SKIP", reason: "Grammar Workshop Blue is intentionally skipped on " + day.label + " (verified skip on record)." });
+    } else if (future) {
+      flags.push({ flag: "VERIFIED_SUBJECT_SKIP_REQUIRED", reason: "Grammar Workshop Blue is missing from " + day.label + " and no verified skip is on record. Add a Grammar assignment or record a verified skip before generating this week." });
+    } else {
+      flags.push({ flag: "GRAMMAR_MISSING_NEEDS_CONFIRMATION", reason: "Grammar Workshop Blue is missing from " + day.label + ". For Level 5.1, Grammar is expected on EVERY homework day unless the syllabus explicitly confirms a skip — the May 25-29 omission is NOT accepted as evidence of once-weekly Grammar. Keep this flagged; add a confirmed Grammar block once pacing evidence is provided. Do not invent Grammar content and do not add a verifiedSkips entry for Grammar without syllabus confirmation." });
+    }
+  }
+
+  if (future && blocks < MIN_DAILY_SUBJECTS) {
+    var missing = EXPECTED_SUBJECTS.filter(function (k) { return k !== "grammar" && !present[k] && verified.indexOf(k) < 0; });
+    if (missing.length) flags.push({ flag: "EXPECTED_SUBJECT_MISSING", reason: day.label + " is also missing: " + missing.map(function (k) { return SUBJECT_LABELS[k]; }).join(", ") + "." });
+  }
+
+  var problem = (blocks < MIN_DAILY_SUBJECTS) || (!present.grammar && verified.indexOf("grammar") < 0);
+  if (problem)
+    flags.push({ flag: "DAY_STRUCTURE_INCOMPLETE_NEEDS_REVIEW", reason: day.label + " day structure is incomplete and needs review before it is used as a generated template." });
+
+  return { day: day.label, dueDate: day.dueDate, blocks: blocks, present: present, flags: flags, blocking: future && problem };
+}
+
+function auditTrack(track) {
+  var results = homeworkData[track].days.map(function (d) { return auditDailySubjectCompleteness(track, d); });
+  return { days: results, hasBlocking: results.some(function (r) { return r.blocking; }) };
+}
+
+/* =========================================================
+   PREVIEW RENDERING
+   Column model (5): daybar | cover | num | text | checkbox
+   - daybar  : vertical-merged across the whole day (rowspan)
+   - cover   : vertical-merged across each subject (rowspan) -> white gap
+   - due row : navy band spanning cover+num+text, check at far right
+   ========================================================= */
+var sheetEl = document.getElementById("sheet"), statusEl = document.getElementById("status");
+function escapeHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* The text a student/parent sees. If an assignment cannot be safely generated
+   (needs_confirmation and no approved wording) we show a clean placeholder
+   instead of inventing the assignment. */
+function visibleText(item, subjectBook) {
+  if (item.action === "needs_confirmation" && !item.student_visible_text) {
+    var s = (subjectBook || "Assignment").replace(/\s.*$/, "");
+    return s + " assignment NEEDS_CONFIRMATION.";
+  }
+  return item.student_visible_text;
+}
+/* ---------------------------------------------------------
+   Rich inline formatting.
+   Each row may carry an explicit `rich` array of segments
+   ({ text, bold, italic, color }). When absent, autoRich()
+   derives the segments from the approved string by applying
+   the original Groton style rules. Either way the concatenated
+   segment text is byte-identical to student_visible_text — the
+   homework wording is never changed, only styled.
+   --------------------------------------------------------- */
+var RICH_BLUE = "0070C0", RICH_RED = "C00000";
+
+function autoRich(text) {
+  var marks = [];
+  function add(re, style) {
+    if (re.global) { var m; re.lastIndex = 0; while ((m = re.exec(text))) { marks.push({ s: m.index, e: m.index + m[0].length, style: style }); if (m.index === re.lastIndex) re.lastIndex++; } }
+    else { var mm = re.exec(text); if (mm) marks.push({ s: mm.index, e: mm.index + mm[0].length, style: style }); }
+  }
+  add(/^(?:SB:|WB:|WS:|Quiz:|Novel:)/, { bold: true });                        // leading label -> bold
+  add(/\b(?:Complete|Highlight|Rewrite)\b/g, { bold: true, color: RICH_BLUE }); // action words -> bold + blue
+  add(/\bStudy\b/g, { bold: true, color: RICH_BLUE });
+  add(/\b(?:Review|Preview)\b/g, { bold: true });                              // review/preview -> bold
+  try { add(/(?<=Study for )[^.,(]+/g, { color: RICH_BLUE }); } catch (e) {}    // quiz/lesson name -> blue
+  add(/\((?:pp?|p)\.[0-9–\-\s,]+\)/g, { color: RICH_RED });                // parenthetical pages -> red
+  add(/\bif not finished\b/g, { italic: true });                               // emphasis phrase -> italic
+
+  marks.sort(function (a, b) { return a.s - b.s || b.e - a.e; });
+  var chosen = [], lastEnd = 0;
+  marks.forEach(function (mk) { if (mk.s >= lastEnd) { chosen.push(mk); lastEnd = mk.e; } });
+
+  var segs = [], pos = 0;
+  chosen.forEach(function (mk) {
+    if (mk.s > pos) segs.push({ text: text.slice(pos, mk.s) });
+    var seg = { text: text.slice(mk.s, mk.e) };
+    if (mk.style.bold) seg.bold = true;
+    if (mk.style.italic) seg.italic = true;
+    if (mk.style.color) seg.color = mk.style.color;
+    segs.push(seg); pos = mk.e;
+  });
+  if (pos < text.length) segs.push({ text: text.slice(pos) });
+  return segs;
+}
+
+/* Segments for an item: explicit `rich` override, else auto-derived. */
+function getRich(item, subjectBook) {
+  if (item.rich && item.rich.length) return item.rich;
+  return autoRich(visibleText(item, subjectBook));
+}
+
+function richToHtml(segs) {
+  return segs.map(function (seg) {
+    var t = escapeHtml(seg.text), css = "";
+    if (seg.color) css += "color:#" + seg.color + ";";
+    if (seg.bold) css += "font-weight:700;";
+    if (seg.italic) css += "font-style:italic;";
+    return css ? '<span style="' + css + '">' + t + "</span>" : t;
+  }).join("");
+}
+
+/* Render one item's text; in admin mode append a small flag marker (screen only). */
+function formatItem(item, subjectBook, adminOn) {
+  var html = richToHtml(getRich(item, subjectBook));
+  if (adminOn && item.risk_flags && item.risk_flags.length) {
+    html += ' <span class="flag-mark no-print" title="' + escapeHtml(item.risk_flags.join(", ")) + '">&#9873;</span>';
+  }
+  return html;
+}
+
+/* Review/Preview classification for Student-Book assignments (never guesses). */
+function classifyRP(item) {
+  if (item.assignment_type !== "student_book") return null;
+  var hasR = item.review_lesson != null, hasP = item.preview_lesson != null;
+  if (item.action === "needs_confirmation") return { label: "Needs confirmation", warn: true };
+  if (hasR && hasP) return { label: "Review + Preview", warn: false };
+  if (item.action === "preview") return { label: "Preview only", warn: item.confidence === "low" };
+  if (item.action === "review") {
+    if (item.confidence === "low" || item.risk_flags.indexOf("POSSIBLE_REVIEW_PREVIEW_LABEL_MISMATCH") >= 0)
+      return { label: "Review (needs confirmation)", warn: true };
+    return { label: "Review only", warn: false };
+  }
+  if (item.action === "complete") return null; /* not a review/preview decision */
+  return { label: "Needs confirmation", warn: true };
+}
+
+function dayTotalRows(day) { var n = 1; day.subjects.forEach(function (s) { n += 1 + s.items.length; }); return n + 1; }
+
+function renderDayRows(day, adminOn) {
+  var rows = "", total = dayTotalRows(day);
+  rows += '<tr>' +
+    '<td class="daybar" rowspan="' + total + '"><span>' + escapeHtml(day.label) + '</span></td>' +
+    '<td class="due" colspan="3"><div class="due-inner">' +
+      '<span class="d-left">Due Date: ' + escapeHtml(day.dueDate) + '</span>' +
+      '<span class="d-right">When completed</span></div></td>' +
+    '<td class="chk-due"><span class="vbox"><img src="' + assetDataUri(CHECK_FILE) + '" alt="✓" onerror="this.parentNode.textContent=\'✓\'"></span></td>' +
+  '</tr>';
+
+  var num = 1;
+  day.subjects.forEach(function (s) {
+    var span = 1 + s.items.length;
+    var cover = s.cover ? '<img class="cover" src="' + assetDataUri(s.cover) + '" alt="" onerror="this.remove()">' : '';
+    rows += '<tr>' +
+      '<td class="cover-cell" rowspan="' + span + '">' + cover + '</td>' +
+      '<td class="subject" colspan="2"><span class="book" style="color:#' + s.color + '">' + escapeHtml(s.book) + '</span></td>' +
+      '<td class="chk-navy"></td></tr>';
+    s.items.forEach(function (it) {
+      rows += '<tr>' +
+        '<td class="num">' + (num++) + '.</td>' +
+        '<td class="txt">' + formatItem(it, s.book, adminOn) + '</td>' +
+        '<td class="box-cell"><span class="box"></span></td></tr>';
+    });
+  });
+
+  rows += '<tr><td class="project" colspan="4"><span class="star">★</span> ' +
+    '<strong>1,000 Book Project:</strong> ' + escapeHtml(day.bookProject) + '</td></tr>';
+  return rows;
+}
+
+function renderSheet(track, showFlags) {
+  var data = homeworkData[track];
+  if (!data) { sheetEl.innerHTML = '<div class="empty-state">No data for that track.</div>'; return; }
+
+  var logo = '<span class="logo-box"><img src="' + assetDataUri(LOGO_FILE) + '" alt="Groton Premier Academy"' +
+    ' onerror="this.outerHTML=\'<span class=&quot;logo-fallback&quot;>Groton Premier</span>\'"></span>';
+  var head = '<div class="sheet-head">' + logo + '<span class="vrule"></span>' +
+    '<div class="sheet-title">' + escapeHtml(data.title) + '</div><span class="vrule"></span><span></span></div>';
+
+  var body = '';
+  data.days.forEach(function (day) { body += renderDayRows(day, showFlags); });
+  var table = '<table class="hw"><colgroup><col class="c-bar"><col class="c-cover"><col class="c-num"><col><col class="c-chk"></colgroup>' + body + '</table>';
+
+  var abbr = '<table class="abbr"><tr><td class="a-title" colspan="2">Abbreviation Code</td></tr>' +
+    '<tr><td class="a-codes"><b>SB</b> = Student Book</td><td class="a-codes"><b>WB</b> = Workbook</td></tr></table>';
+
+  var sheetHtml = '<div class="page">' + head + table + abbr + '</div>';
+  sheetEl.innerHTML = sheetHtml + (showFlags ? buildLogicReview(track) : '');
+}
+
+/* Teacher/Admin "Homework Logic Review": per-assignment Review/Preview
+   classification, confidence, and risk flags derived from metadata.
+   Screen-only (no-print) — never part of the printed sheet or DOCX export. */
+function buildLogicReview(track) {
+  var data = homeworkData[track], flagged = 0, dayIssues = 0, sections = "";
+  data.days.forEach(function (day) {
+    /* day-level completeness audit (warnings shown above the assignment table) */
+    var audit = auditDailySubjectCompleteness(track, day);
+    var auditHtml = "";
+    if (audit.flags.length) {
+      dayIssues++;
+      auditHtml = '<div class="day-audit">' +
+        '<div class="da-head">Daily Subject Completeness — ' + audit.blocks + ' subject block(s)</div>' +
+        audit.flags.map(function (f) {
+          return '<div class="audit-flag"><span class="flags">RISK_FLAG: ' + escapeHtml(f.flag) + '</span>' +
+            '<div class="note">Reason: ' + escapeHtml(f.reason) + '</div></div>';
+        }).join("") + '</div>';
+    }
+    var rowsHtml = "";
+    day.subjects.forEach(function (s) {
+      var num = 1, first = true;
+      s.items.forEach(function (it) {
+        var cls = classifyRP(it);
+        var hasFlags = it.risk_flags && it.risk_flags.length;
+        if (hasFlags) flagged++;
+        var clsHtml = cls ? '<span class="cls ' + (cls.warn ? "warn" : "ok") + '">' + escapeHtml(cls.label) + "</span>" : "<span class='dim'>—</span>";
+        var flagsHtml = hasFlags
+          ? '<div class="flags">' + escapeHtml(it.risk_flags.join(", ")) + "</div>" + (it.admin_note ? '<div class="note">' + escapeHtml(it.admin_note) + "</div>" : "")
+          : (it.admin_note ? '<div class="note">' + escapeHtml(it.admin_note) + "</div>" : "<span class='dim'>none</span>");
+        rowsHtml +=
+          "<tr>" +
+            "<td>" + (first ? '<b>' + escapeHtml(s.book) + "</b>" : "") + "</td>" +
+            "<td>" + (num++) + ". " + escapeHtml(visibleText(it, s.book)) + "</td>" +
+            "<td>" + escapeHtml(it.action) + "</td>" +
+            "<td>" + clsHtml + "</td>" +
+            '<td class="conf-' + escapeHtml(it.confidence) + '">' + escapeHtml(it.confidence) + "</td>" +
+            "<td>" + flagsHtml + "</td>" +
+          "</tr>";
+        first = false;
+      });
+    });
+    sections += '<div class="lr-day">' + escapeHtml(day.label) + " — Due " + escapeHtml(day.dueDate) + "</div>" +
+      auditHtml +
+      '<table><tr><th>Subject</th><th>Assignment</th><th>Action</th><th>Review / Preview</th><th>Conf.</th><th>Risk flags &amp; note</th></tr>' +
+      rowsHtml + "</table>";
+  });
+
+  var general = generalFlags.map(function (g) { return "<li><code>" + escapeHtml(g.flag) + "</code> — " + escapeHtml(g.note) + "</li>"; }).join("");
+  var modeNote = GENERATION_MODE === "approved_sample"
+    ? "Mode: approved-sample recreation — the student sheet and approved text are preserved; missing-subject issues are warnings only."
+    : "Mode: future generation — days below " + MIN_DAILY_SUBJECTS + " subjects or missing Grammar without a verified skip will block Print/DOCX until confirmed.";
+  return '<div class="logic-review no-print">' +
+    "<h3>Teacher / Admin — Homework Logic Review</h3>" +
+    '<p class="lr-sub">' + flagged + ' assignment(s) and ' + dayIssues + ' day(s) flagged for confirmation. ' +
+      'Review/Preview and daily subject completeness are checked from evidence; the generator never guesses or invents missing assignments. ' +
+      'This panel is screen-only and is never printed or exported.<br><em>' + modeNote + '</em></p>' +
+    sections +
+    (general ? '<div class="lr-day">General project flags</div><ul class="lr-general">' + general + "</ul>" : "") +
+    "</div>";
+}
+
+function buildPlainText(track, showFlags) {
+  var data = homeworkData[track], lines = [];
+  lines.push(data.title + "   (Week of " + WEEK_LABEL + ")"); lines.push("");
+  data.days.forEach(function (day) {
+    lines.push(day.label + " — Due Date: " + day.dueDate);
+    var num = 1;
+    day.subjects.forEach(function (s) { lines.push("  " + s.book); s.items.forEach(function (it) { lines.push("    " + (num++) + ". " + visibleText(it, s.book)); }); });
+    lines.push("  ★1,000 Book Project: " + day.bookProject); lines.push("");
+  });
+  lines.push("Abbreviation Code:  SB = Student Book   WB = Workbook");
+  if (showFlags) {
+    lines.push(""); lines.push("Teacher / Admin — Homework Logic Review:");
+    data.days.forEach(function (day) {
+      day.subjects.forEach(function (s) {
+        s.items.forEach(function (it) {
+          var cls = classifyRP(it);
+          if ((it.risk_flags && it.risk_flags.length) || (cls && cls.warn)) {
+            lines.push("  - [" + s.book + "] " + it.student_visible_text);
+            if (cls) lines.push("      Classification: " + cls.label + " (confidence: " + it.confidence + ")");
+            if (it.risk_flags && it.risk_flags.length) lines.push("      RISK_FLAGS: " + it.risk_flags.join(", "));
+            if (it.admin_note) lines.push("      Note: " + it.admin_note);
+          }
+        });
+      });
+    });
+    lines.push(""); lines.push("Daily Subject Completeness Audit:");
+    data.days.forEach(function (day) {
+      var a = auditDailySubjectCompleteness(track, day);
+      lines.push("  " + day.label + " (" + day.dueDate + ") — " + a.blocks + " subject block(s)" + (a.flags.length ? ":" : ": OK"));
+      a.flags.forEach(function (f) { lines.push("    RISK_FLAG: " + f.flag); lines.push("      Reason: " + f.reason); });
+    });
+    lines.push(""); lines.push("General project flags:");
+    generalFlags.forEach(function (g) { lines.push("  - " + g.flag + " — " + g.note); });
+  }
+  return lines.join("\n");
+}
+
+/* =========================================================
+   DOCX EXPORT  (real .docx via local docx library)
+   Mirrors the preview column model exactly.
+   ========================================================= */
+function buildDocx(track) {
+  var D = window.docx, data = homeworkData[track];
+  var navy = "002060", navyDeep = "000066", dash = "AEB4C6", rule = "D7DBE6", cream = "FBF3D0";
+  var COLS = [500, 1100, 500, 8200, 500]; /* bar, cover, num, text, chk (dxa) */
+
+  function bytesType(fn) { var a = ASSET_BUNDLE[fn]; return a ? (a.type === "jpg" ? "jpg" : a.type) : "png"; }
+  function img(fn, w, h) { var b = assetBytes(fn); return b ? new D.ImageRun({ data: b, type: bytesType(fn), transformation: { width: w, height: h } }) : null; }
+  function run(t, o) { o = o || {}; o.text = t; return new D.TextRun(o); }
+  function P(kids, o) { o = o || {}; o.children = kids; return new D.Paragraph(o); }
+  function cell(o) { return new D.TableCell(o); }
+  var noEdge = { style: D.BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  function dashedBottom() { return { top: noEdge, bottom: { style: D.BorderStyle.DASHED, size: 4, color: dash }, left: noEdge, right: noEdge }; }
+  function whiteBold(t, sz) { return run(t, { bold: true, color: "FFFFFF", size: sz || 18 }); }
+
+  /* ----- header table: logo | title | spacer (thin column rules) ----- */
+  var logo = img(LOGO_FILE, 150, 38);
+  var headerRow = new D.TableRow({ children: [
+    cell({ width: { size: 2400, type: D.WidthType.DXA }, verticalAlign: D.VerticalAlign.CENTER,
+      borders: { top: noEdge, bottom: noEdge, left: noEdge, right: { style: D.BorderStyle.SINGLE, size: 4, color: navy } },
+      children: [ P(logo ? [logo] : [run("Groton Premier", { bold: true, color: navy })]) ] }),
+    cell({ width: { size: 5685, type: D.WidthType.DXA }, verticalAlign: D.VerticalAlign.CENTER,
+      borders: { top: noEdge, bottom: noEdge, left: noEdge, right: { style: D.BorderStyle.SINGLE, size: 4, color: navy } },
+      children: [ P([ run(data.title, { bold: true, size: 40, font: "Century Gothic" }) ], { alignment: D.AlignmentType.CENTER }) ] }),
+    cell({ width: { size: 2400, type: D.WidthType.DXA }, borders: { top: noEdge, bottom: noEdge, left: noEdge, right: noEdge }, children: [ P([run("")]) ] })
+  ] });
+  var headerTable = new D.Table({ width: { size: 10485, type: D.WidthType.DXA }, columnWidths: [2400, 5685, 2400],
+    borders: { top: noEdge, bottom: noEdge, left: noEdge, right: noEdge, insideHorizontal: noEdge, insideVertical: noEdge }, rows: [headerRow] });
+
+  /* ----- main homework table ----- */
+  var rows = [];
+  /* Build DOCX runs from the same rich segments used by the preview. */
+  function itemRuns(it) {
+    return getRich(it).map(function (seg) {
+      var o = { text: seg.text, size: 16 };
+      if (seg.bold) o.bold = true;
+      if (seg.italic) o.italics = true;
+      if (seg.color) o.color = seg.color;
+      return new D.TextRun(o);
+    });
+  }
+
+  data.days.forEach(function (day) {
+    var total = 1; day.subjects.forEach(function (s) { total += 1 + s.items.length; }); total += 1;
+    var chk = img(CHECK_FILE, 11, 10);
+
+    /* due-date row + day-bar restart */
+    rows.push(new D.TableRow({ children: [
+      cell({ rowSpan: total, shading: { type: D.ShadingType.CLEAR, fill: navy }, verticalAlign: D.VerticalAlign.CENTER,
+        textDirection: D.TextDirection.BOTTOM_TO_TOP_LEFT_TO_RIGHT, children: [ P([whiteBold(day.label, 26)], { alignment: D.AlignmentType.CENTER }) ] }),
+      cell({ columnSpan: 3, shading: { type: D.ShadingType.CLEAR, fill: navy }, verticalAlign: D.VerticalAlign.CENTER,
+        children: [ new D.Paragraph({ tabStops: [{ type: D.TabStopType.RIGHT, position: 9600 }],
+          children: [ whiteBold("Due Date: " + day.dueDate, 20), run("\tWhen completed", { color: "FFFFFF", size: 16 }) ] }) ] }),
+      cell({ shading: { type: D.ShadingType.CLEAR, fill: navy }, verticalAlign: D.VerticalAlign.CENTER,
+        children: [ P(chk ? [chk] : [run("✓", { color: "FFFFFF" })], { alignment: D.AlignmentType.CENTER }) ] })
+    ] }));
+
+    var num = 1;
+    day.subjects.forEach(function (s) {
+      var span = 1 + s.items.length, cov = img(s.cover, 40, 53);
+      /* subject heading row */
+      rows.push(new D.TableRow({ children: [
+        cell({ rowSpan: span, verticalAlign: D.VerticalAlign.CENTER, children: [ P(cov ? [cov] : [run("")], { alignment: D.AlignmentType.CENTER }) ] }),
+        cell({ columnSpan: 2, verticalAlign: D.VerticalAlign.CENTER, children: [ P([ run(s.book, { bold: true, color: s.color, size: 19 }) ]) ] }),
+        cell({ shading: { type: D.ShadingType.CLEAR, fill: navy }, children: [ P([run("")]) ] })
+      ] }));
+      /* item rows */
+      s.items.forEach(function (it) {
+        rows.push(new D.TableRow({ children: [
+          cell({ borders: dashedBottom(), verticalAlign: D.VerticalAlign.CENTER, children: [ P([ run((num++) + ".", { bold: true, color: navy, size: 16 }) ], { alignment: D.AlignmentType.CENTER }) ] }),
+          cell({ borders: dashedBottom(), children: [ P(itemRuns(it)) ] }),
+          cell({ borders: { top: noEdge, bottom: { style: D.BorderStyle.DASHED, size: 4, color: dash }, left: { style: D.BorderStyle.SINGLE, size: 2, color: rule }, right: noEdge },
+            verticalAlign: D.VerticalAlign.CENTER, children: [ P([ run("☐", { size: 20 }) ], { alignment: D.AlignmentType.CENTER }) ] })
+        ] }));
+      });
+    });
+
+    /* 1,000 Book Project row */
+    rows.push(new D.TableRow({ children: [
+      cell({ columnSpan: 4, shading: { type: D.ShadingType.CLEAR, fill: cream },
+        children: [ P([ run("★ ", { color: "B8860B", bold: true, size: 18 }), run("1,000 Book Project: ", { bold: true, color: "5B4A16", size: 16 }), run(day.bookProject, { color: "5B4A16", size: 16 }) ]) ] })
+    ] }));
+  });
+
+  var hwTable = new D.Table({ columnWidths: COLS, width: { size: 10800, type: D.WidthType.DXA },
+    layout: D.TableLayoutType.FIXED,
+    borders: { top: { style: D.BorderStyle.SINGLE, size: 8, color: navy }, bottom: { style: D.BorderStyle.SINGLE, size: 8, color: navy },
+      left: { style: D.BorderStyle.SINGLE, size: 8, color: navy }, right: { style: D.BorderStyle.SINGLE, size: 8, color: navy },
+      insideHorizontal: noEdge, insideVertical: { style: D.BorderStyle.SINGLE, size: 2, color: rule } }, rows: rows });
+
+  /* ----- abbreviation code ----- */
+  function ac(kids, fill) { return cell({ shading: fill ? { type: D.ShadingType.CLEAR, fill: fill } : undefined, verticalAlign: D.VerticalAlign.CENTER, children: kids }); }
+  var abbrTable = new D.Table({ width: { size: 10800, type: D.WidthType.DXA }, columnWidths: [5400, 5400],
+    borders: { top: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep }, bottom: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep },
+      left: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep }, right: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep },
+      insideHorizontal: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep }, insideVertical: { style: D.BorderStyle.SINGLE, size: 4, color: navyDeep } },
+    rows: [
+      new D.TableRow({ children: [ ac([ P([whiteBold("Abbreviation Code", 20)], { alignment: D.AlignmentType.CENTER }) ], navyDeep),
+        cell({ shading: { type: D.ShadingType.CLEAR, fill: navyDeep }, children: [P([run("")])] }) ] }),
+      new D.TableRow({ children: [
+        ac([ P([ run("SB", { bold: true, color: navyDeep, size: 16 }), run(" = Student Book", { size: 16 }) ], { alignment: D.AlignmentType.CENTER }) ]),
+        ac([ P([ run("WB", { bold: true, color: navyDeep, size: 16 }), run(" = Workbook", { size: 16 }) ], { alignment: D.AlignmentType.CENTER }) ]) ] })
+    ] });
+
+  return new D.Document({ sections: [{
+    properties: { page: { size: { orientation: D.PageOrientation.PORTRAIT }, margin: { top: 720, bottom: 720, left: 720, right: 720 } } },
+    children: [ headerTable, P([run("")], { spacing: { after: 40 } }), hwTable, P([run("")], { spacing: { after: 40 } }), abbrTable ]
+  }] });
+}
+
+/* In future-generation mode, refuse to emit a sheet whose days are incomplete
+   (low subject count / Grammar missing without a verified skip). Never active in
+   approved-sample mode, so Week 1 is unaffected. */
+function generationBlocked(track) {
+  if (GENERATION_MODE !== "future_generation") return false;
+  if (auditTrack(track).hasBlocking) {
+    setStatus("Generation blocked: a day is below " + MIN_DAILY_SUBJECTS + " subjects or missing Grammar. Confirm in Teacher/Admin review.", true);
+    return true;
+  }
+  return false;
+}
+
+function downloadDocx(track) {
+  if (!window.docx) { setStatus("DOCX library not loaded (vendor/docx.umd.js).", true); return; }
+  if (generationBlocked(track)) return;
+  try {
+    window.docx.Packer.toBlob(buildDocx(track)).then(function (blob) {
+      var name = homeworkData[track].title.replace(/[()]/g, "").replace(/\s+/g, "_") + "_June_1-5.docx";
+      var url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000); setStatus("DOCX downloaded: " + name);
+    }).catch(function (e) { setStatus("DOCX export failed: " + e.message, true); });
+  } catch (e) { setStatus("DOCX export failed: " + e.message, true); }
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+var trackSelect = document.getElementById("trackSelect"), adminToggle = document.getElementById("adminToggle"), docxBtn = document.getElementById("docxBtn");
+var hasGenerated = false, statusTimer = null;
+function setStatus(msg, isErr) { statusEl.textContent = msg; statusEl.classList.toggle("err", !!isErr); statusEl.classList.add("show"); clearTimeout(statusTimer); statusTimer = setTimeout(function () { statusEl.classList.remove("show"); }, 2600); }
+function currentRender() { renderSheet(trackSelect.value, adminToggle.checked); }
+if (!window.docx) { docxBtn.disabled = true; docxBtn.title = "vendor/docx.umd.js not found"; }
+document.getElementById("generateBtn").addEventListener("click", function () { hasGenerated = true; currentRender(); });
+trackSelect.addEventListener("change", function () { if (hasGenerated) currentRender(); });
+adminToggle.addEventListener("change", function () { if (hasGenerated) currentRender(); });
+document.getElementById("copyBtn").addEventListener("click", function () {
+  if (!hasGenerated) { setStatus("Generate the sheet first.", true); return; }
+  var text = buildPlainText(trackSelect.value, adminToggle.checked);
+  function ok() { setStatus("Copied to clipboard."); }
+  function fb() { var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch (e) { setStatus("Copy failed.", true); } document.body.removeChild(ta); }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok).catch(fb); else fb();
+});
+document.getElementById("printBtn").addEventListener("click", function () { if (!hasGenerated) { setStatus("Generate the sheet first.", true); return; } if (generationBlocked(trackSelect.value)) return; window.print(); });
+docxBtn.addEventListener("click", function () { if (!hasGenerated) { setStatus("Generate the sheet first.", true); return; } downloadDocx(trackSelect.value); });
+</script>
+</body>
+</html>
